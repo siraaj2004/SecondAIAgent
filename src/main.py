@@ -1,16 +1,11 @@
 """
-Second AI Agent — starter entry point.
+Second AI Agent — entry point.
 
-Placeholder only. Replace with the real agent logic once the
-purpose and stack are defined in PROJECT.md.
-This file must not import anything from the first project
-(relationship-ai-keyboard).
+Runs the approval-only workflow web server (UI + API).
+No Instagram login or integration is used anywhere.
 """
 
-
-def main() -> None:
-    print("Second AI Agent: project created, not built yet.")
-
+from server import main
 
 if __name__ == "__main__":
     main()
