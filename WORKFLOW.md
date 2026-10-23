@@ -2,7 +2,10 @@
 
 Created: 2026-10-23
 Location: `~/workspace/second-ai-agent/`
-Status: Backend workflow logic built and tested. No Instagram automation.
+Status: COMPLETED (approval-only version) 2026-10-23 — workflow logic,
+persistent SQLite database, web UI, JSON API, 48h scheduler, and its own
+deployment blueprint (render.yaml) are built and tested (13/13 tests).
+No Instagram automation, no Instagram login.
 
 ## What was NOT built — and why
 
@@ -123,10 +126,16 @@ The workflow then **pauses** — shaik takes over personally.
 - Authorized Instagram integration: **none used.** Official Instagram
   messaging does not support the requested discovery/cold outreach, and
   this system does not automate Instagram in any way.
-- Conversation database: in-memory store in `src/workflow.py`
-  (deliberately no persistent private-conversation storage yet).
-- 48-hour scheduler: `due_reminders()` logic shaik / a cron can call;
-  reminders go to shaik only.
+- Conversation database: persistent SQLite store in `src/store.py`
+  (file `data/workflow.db`, DB_PATH configurable). Deleting a contact
+  deletes its row completely. On a free Render service the filesystem
+  is ephemeral, so the deployed DB resets on redeploy unless a paid
+  persistent disk is attached — locally it is fully persistent.
+- User interface: web UI in `ui/index.html`, served by `src/server.py`
+  together with a JSON API under `/api/` (X-API-Key auth when
+  APP_API_KEY is set).
+- 48-hour scheduler: background thread in `src/server.py` checks
+  hourly, plus `GET /api/reminders`; reminders go to shaik only.
 - Language detection + Roman Urdu / Roman Telugu / English draft generation: in code.
 - Behaviour + compatibility assessment: in code, evidence-thresholded.
 - User approval before outgoing messages: enforced — system sends nothing.
