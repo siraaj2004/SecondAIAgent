@@ -1,0 +1,1 @@
+# Second AI Agent dependencies — fill in when the stack is chosen.
