@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second AI Agent — Approval-Only Relationship Assistant</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f6f6f8; color: #1c1c1e; }
+  header { background: #111827; color: #fff; padding: 16px 20px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; opacity: .85; font-size: 13px; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  section { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+  h2 { margin: 0 0 10px; font-size: 16px; }
+  label { display: block; font-size: 13px; margin: 8px 0 4px; }
+  input, select, textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+  textarea { min-height: 110px; font-family: inherit; }
+  button { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; margin: 6px 6px 0 0; }
+  button.secondary { background: #e5e7eb; color: #111827; }
+  button.danger { background: #dc2626; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .contact { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin: 8px 0; cursor: pointer; }
+  .contact.selected { border-color: #2563eb; background: #eff6ff; }
+  .badge { font-size: 11px; background: #e5e7eb; border-radius: 999px; padding: 2px 8px; }
+  pre { background: #f3f4f6; padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
+  .note { font-size: 13px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px; }
+  .notification { background: #ecfdf5; border: 1px solid #6ee7b7; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Second AI Agent</h1>
+  <p>Approval-only relationship assistant · Drafts only — nothing is ever sent · <strong>No Instagram login</strong> — you add contacts manually</p>
+</header>
+<main>
+  <section>
+    <h2>App API key</h2>
+    <p style="font-size:13px;margin:0">This is <em>this app's own</em> key (APP_API_KEY on the server) — not an Instagram password. Leave blank if the server has none set.</p>
+    <div class="row">
+      <div style="flex:1"><label>X-API-Key</label><input id="apiKey" type="password" placeholder="optional"></div>
+      <button class="secondary" onclick="saveKey()">Save key in this browser</button>
+      <button class="secondary" onclick="loadContacts()">Refresh contacts</button>
+    </div>
+    <p id="health" style="font-size:13px"></p>
+  </section>
+
+  <section>
+    <h2>1 · Add a contact manually</h2>
+    <div class="note">Only someone you know personally, a mutual follow, or someone who contacted you first — and an adult you have confirmed. There is no search or discovery here.</div>
+    <label>Handle / name (you supply it)</label><input id="handle">
+    <label>How do you know them?</label>
+    <select id="basis">
+      <option value="known_personally">I know them personally</option>
+      <option value="mutual_follow">Mutual follow</option>
+      <option value="contacted_me_first">They contacted me first</option>
+    </select>
+    <label>Shared interest (optional)</label><input id="interest" placeholder="e.g. movies">
+    <label><input type="checkbox" id="adult" style="width:auto"> Adult confirmed</label>
+    <button onclick="addContact()">Add contact</button>
+    <pre id="addOut" hidden></pre>
+  </section>
+
+  <section>
+    <h2>2 · Your contacts</h2>
+    <div id="contacts">Loading…</div>
+  </section>
+
+  <section id="detail" hidden>
+    <h2>3 · Work with <span id="selName"></span></h2>
+    <div class="row">
+      <button onclick="makeDraft('intro')">Prepare intro draft</button>
+      <button class="secondary" onclick="recordSend()">I sent it manually — record time</button>
+      <button class="secondary" onclick="checkReminders()">Check 48h reminders (for me)</button>
+      <button class="danger" onclick="decline()">Mark declined — close</button>
+      <button class="danger" onclick="del()">Delete contact completely</button>
+    </div>
+    <pre id="draftOut" hidden></pre>
+
+    <label>Import a conversation — one message per line, starting with <b>me:</b> or <b>them:</b></label>
+    <textarea id="importText" placeholder="them: hello, how are you?&#10;me: hi, good thanks"></textarea>
+    <button onclick="importMsgs()">Import messages</button>
+    <button class="secondary" onclick="behaviour()">Analyse behaviour</button>
+    <pre id="importOut" hidden></pre>
+
+    <label>Family acceptance perspective — as she stated it (after 6+ messages)</label>
+    <input id="family">
+    <button class="secondary" onclick="family()">Record perspective</button>
+
+    <label>Community — only if she volunteered it AND gave permission</label>
+    <input id="community" placeholder="volunteered community">
+    <label><input type="checkbox" id="commVol" style="width:auto"> She volunteered it</label>
+    <label><input type="checkbox" id="commPerm" style="width:auto"> Permission to record</label>
+    <button class="secondary" onclick="community()">Record community</button>
+
+    <h2 style="margin-top:18px">4 · Compatibility evaluation</h2>
+    <p style="font-size:13px;margin:0">Alignment of stated views only. Agreement to leave family / elopement is never a condition.</p>
+    <label><input type="checkbox" class="align" value="serious_relationship" style="width:auto"> Serious relationship</label>
+    <label><input type="checkbox" class="align" value="family_involvement" style="width:auto"> Family involvement</label>
+    <label><input type="checkbox" class="align" value="marriage_expectations" style="width:auto"> Marriage expectations</label>
+    <label><input type="checkbox" class="align" value="personal_independence" style="width:auto"> Personal independence</label>
+    <label><input type="checkbox" class="align" value="handling_disagreements" style="width:auto"> Handling disagreements</label>
+    <button onclick="evaluate()">Evaluate compatibility</button>
+    <pre id="evalOut" hidden></pre>
+    <div id="notif" class="notification" hidden style="padding:12px;border-radius:8px;margin-top:10px"></div>
+  </section>
+</main>
+<script>
+let selected = null;
+const $ = id => document.getElementById(id);
+function key() { return localStorage.getItem('appApiKey') || ''; }
+function saveKey() { localStorage.setItem('appApiKey', $('apiKey').value); alert('Saved in this browser only.'); }
+async function api(path, method='GET', body) {
+  const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json', 'X-API-Key': key() },
+    body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+function show(id, obj) { const e = $(id); e.hidden = false; e.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); }
+async function health() {
+  try { const h = await (await fetch('/health')).json();
+    $('health').textContent = 'Server: ' + h.status + ' · Auth configured: ' + h.auth_configured + ' · Instagram integration: NO · Contacts: ' + h.contacts;
+  } catch(e) { $('health').textContent = 'Server not reachable'; }
+}
+async function addContact() {
+  try { const c = await api('/api/contacts', 'POST', { handle: $('handle').value, basis: $('basis').value,
+      adult_confirmed: $('adult').checked, shared_interest: $('interest').value || null });
+    show('addOut', c); loadContacts();
+  } catch(e) { show('addOut', 'Error: ' + e.message); }
+}
+async function loadContacts() {
+  health();
+  try { const list = await api('/api/contacts');
+    $('contacts').innerHTML = list.length ? '' : 'No contacts yet.';
+    list.forEach(c => { const d = document.createElement('div'); d.className = 'contact' + (selected === c.contact_id ? ' selected' : '');
+      d.innerHTML = '<b></b> <span class="badge"></span>'; d.querySelector('b').textContent = c.handle;
+      d.querySelector('.badge').textContent = c.status + ' · ' + c.messages.length + ' messages';
+      d.onclick = () => { selected = c.contact_id; $('detail').hidden = false; $('selName').textContent = c.handle; loadContacts(); };
+      $('contacts').appendChild(d); });
+  } catch(e) { $('contacts').textContent = 'Error: ' + e.message; }
+}
+async function makeDraft(kind) { try { show('draftOut', await api(`/api/contacts/${selected}/draft`, 'POST', { kind })); } catch(e) { show('draftOut', 'Error: ' + e.message); } }
+async function recordSend() { try { show('draftOut', await api(`/api/contacts/${selected}/record-send`, 'POST', {})); } catch(e) { show('draftOut', 'Error: ' + e.message); } }
+async function checkReminders() { try { show('draftOut', await api('/api/reminders')); } catch(e) { show('draftOut', 'Error: ' + e.message); } }
+async function decline() { try { show('draftOut', await api(`/api/contacts/${selected}/decline`, 'POST', {})); loadContacts(); } catch(e) { show('draftOut', 'Error: ' + e.message); } }
+async function del() { if (!confirm('Delete this contact completely?')) return;
+  try { await api(`/api/contacts/${selected}`, 'DELETE'); selected = null; $('detail').hidden = true; loadContacts(); } catch(e) { alert(e.message); } }
+async function importMsgs() {
+  const msgs = $('importText').value.split('\n').filter(Boolean).map(l => {
+    const m = l.match(/^(me|them):\s*(.*)$/i); return m ? { sender: m[1].toLowerCase(), text: m[2] } : null; }).filter(Boolean);
+  try { show('importOut', await api(`/api/contacts/${selected}/import`, 'POST', { messages: msgs })); loadContacts(); }
+  catch(e) { show('importOut', 'Error: ' + e.message); }
+}
+async function behaviour() { try { show('importOut', await api(`/api/contacts/${selected}/behaviour`)); } catch(e) { show('importOut', 'Error: ' + e.message); } }
+async function family() { try { show('evalOut', await api(`/api/contacts/${selected}/family`, 'POST', { perspective: $('family').value })); } catch(e) { show('evalOut', 'Error: ' + e.message); } }
+async function community() { try { show('evalOut', await api(`/api/contacts/${selected}/community`, 'POST',
+  { community: $('community').value, volunteered: $('commVol').checked, permission_to_record: $('commPerm').checked })); } catch(e) { show('evalOut', 'Error: ' + e.message); } }
+async function evaluate() {
+  const alignment = {}; document.querySelectorAll('.align').forEach(x => alignment[x.value] = x.checked);
+  try { const r = await api(`/api/contacts/${selected}/evaluate`, 'POST', { alignment }); show('evalOut', r);
+    if (r.notification) { const n = r.notification; $('notif').hidden = false;
+      $('notif').innerHTML = '<b>' + n.title + '</b><br>Instagram username: ' + n.instagram_username +
+        '<br>Preferred language: ' + n.preferred_language + '<br>Conversation stage: ' + n.conversation_stage +
+        '<br>Mutual interest: ' + n.mutual_interest + '<br>Positive behaviour: ' + n.positive_behaviour +
+        '<br>Potential concerns: ' + n.potential_concerns + '<br>Family acceptance perspective: ' + n.family_acceptance_perspective +
+        '<br>Compatibility assessment: ' + n.compatibility_assessment + '<br><b>ACTION REQUIRED:</b> ' + n.action_required; }
+  } catch(e) { show('evalOut', 'Error: ' + e.message); }
+}
+$('apiKey').value = key();
+loadContacts();
+</script>
+</body>
+</html>
